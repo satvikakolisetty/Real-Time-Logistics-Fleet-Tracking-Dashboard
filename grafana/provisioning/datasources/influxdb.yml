@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    type: influxdb
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: fleet-org
+      defaultBucket: fleet-data
+      tlsSkipVerify: true
+    secureJsonData:
+      token: fleet-token-123 

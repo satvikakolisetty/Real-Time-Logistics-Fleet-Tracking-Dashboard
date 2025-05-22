@@ -1,0 +1,220 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Fleet Tracking Dashboard",
+    "tags": ["fleet", "logistics", "real-time"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Vehicle Locations",
+        "type": "table",
+        "datasource": "PostgreSQL",
+        "targets": [
+          {
+            "rawQuery": true,
+            "rawSql": "SELECT vehicle_id, latitude, longitude, current_geofence, timestamp FROM (SELECT vehicle_id, latitude, longitude, current_geofence, timestamp, ROW_NUMBER() OVER (PARTITION BY vehicle_id ORDER BY timestamp DESC) as rn FROM fleet_events) ranked WHERE rn = 1 ORDER BY vehicle_id;",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Alert Events Over Time",
+        "type": "timeseries",
+        "datasource": "InfluxDB",
+        "targets": [
+          {
+            "query": "from(bucket: \"fleet-data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"fleet_events\")\n  |> filter(fn: (r) => r[\"alert_status\"] == \"true\")\n  |> aggregateWindow(every: 1m, fn: count, createEmpty: false)\n  |> yield(name: \"alert_count\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Geofence Status",
+        "type": "stat",
+        "datasource": "PostgreSQL",
+        "targets": [
+          {
+            "rawQuery": true,
+            "rawSql": "SELECT current_geofence, COUNT(*) as vehicle_count FROM (SELECT DISTINCT vehicle_id, current_geofence FROM fleet_events WHERE current_geofence IS NOT NULL) geofence_status GROUP BY current_geofence ORDER BY vehicle_count DESC;",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "displayMode": "list"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Vehicle Activity Timeline",
+        "type": "timeseries",
+        "datasource": "InfluxDB",
+        "targets": [
+          {
+            "query": "from(bucket: \"fleet-data\")\n  |> range(start: -30m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"fleet_events\")\n  |> group(columns: [\"vehicle_id\"])\n  |> aggregateWindow(every: 5m, fn: count, createEmpty: false)\n  |> yield(name: \"vehicle_activity\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "5s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+} 
